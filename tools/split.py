@@ -5,16 +5,32 @@ import random
 
 
 # 读取JSON文件
-def read_json_file(file_path):
+def read_json_file(file_path, max_records=None):
     data = []
     with open(file_path, 'r', encoding='utf-8') as file:
-        for line in file.readlines():
+        for i, line in enumerate(file):
+            if max_records is not None and i >= max_records:
+                break
             try:
                 entry = json.loads(line)
                 data.append(entry)
             except json.JSONDecodeError as e:
-                print(f"Error decoding JSON line:{e}")
+                print(f"Error decoding JSON line: {e}")
     return data
+
+
+# 转换数据格式
+def transform_data(data):
+    transformed_data = []
+    for entry in data:
+        # 创建新的字典，移除'id'，将'input'内容移动到'instruction'，并将'input'置为空字符串
+        new_entry = {
+            "instruction": entry["input"],
+            "input": "",
+            "output": entry["output"]
+        }
+        transformed_data.append(new_entry)
+    return transformed_data
 
 
 # 划分数据集
@@ -41,21 +57,22 @@ def split_dataset(data, train_ratio=0.8, validation_ratio=0.1, test_ratio=0.1):
 # 保存数据集，每条数据写入一行
 def save_dataset(dataset, filepath):
     with open(filepath, 'w', encoding='utf-8') as file:
-        for item in dataset:
-            json_str = json.dumps(item, ensure_ascii=False)
-            file.write(json_str + '\n')
+        json.dump(dataset, file, ensure_ascii=False, indent=4)
 
 
 # 主函数
 def main():
     # JSON文件路径
-    file_path = 'D:\\毕业设计\\train.json'
+    file_path = 'D:\\毕业设计\\DISC-Law-SFT-Pair.jsonl'
 
     # 读取数据
-    data = read_json_file(file_path)
+    data = read_json_file(file_path, max_records=8234)
+
+    # 转换数据格式
+    transformed_data = transform_data(data)
 
     # 划分数据集
-    train_set, validation_set, test_set = split_dataset(data)
+    train_set, validation_set, test_set = split_dataset(transformed_data)
 
     # 保存训练集、验证集和测试集
     save_dataset(train_set, '../data/train.json')
